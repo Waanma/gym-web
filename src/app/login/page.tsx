@@ -2,19 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, db } from '@/config/firebaseConfig';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/config/firebaseConfig';
 
-export default function RegisterPage({ toggle }: { toggle: () => void }) {
+export default function LoginPage({ toggle }: { toggle: () => void }) {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    gym_name: '',
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,26 +21,19 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
     setError('');
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
+      const userCredential = await signInWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
       const user = userCredential.user;
 
-      await setDoc(doc(db, 'gyms', user.uid), {
-        gym_id: user.uid,
-        gym_name: formData.gym_name,
-        email: formData.email,
-        created_at: new Date().toISOString(),
-      });
-
       router.push(`/dashboard/${user.uid}`);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Error registering gym');
+        setError('Invalid email or password');
       }
     }
 
@@ -55,14 +42,6 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <input
-        type="text"
-        name="gym_name"
-        placeholder="Gym Name"
-        onChange={handleChange}
-        required
-        className="border p-2 rounded bg-gray-800 text-white"
-      />
       <input
         type="email"
         name="email"
@@ -83,18 +62,17 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
         type="submit"
         className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
       >
-        {loading ? 'Registering...' : 'Register'}
+        {loading ? 'Logging in...' : 'Login'}
       </button>
-
-      {/* 🔥 Ahora el texto está dentro del formulario */}
+      {error && <p className="text-red-500 text-center">{error}</p>}
       <p className="text-gray-400 mt-3 text-center">
-        Already have an account?{' '}
+        Dont have an account?{' '}
         <button
           type="button"
           onClick={toggle}
           className="text-blue-500 hover:underline"
         >
-          Login
+          Register
         </button>
       </p>
     </form>

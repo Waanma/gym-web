@@ -1,20 +1,12 @@
 import { create } from 'zustand';
-import { User } from '@/types/user';
+import { RegisterFormData } from '@/types/registration';
 
-interface UserState {
-  users: User[];
-  fetchUsers: () => Promise<void>;
+interface UserStore {
+  user: RegisterFormData | null;
+  setUser: (user: RegisterFormData) => void;
 }
 
-export const useUserStore = create<UserState>((set) => ({
-  users: [],
-  fetchUsers: async () => {
-    try {
-      const response = await fetch('/api/users'); // 🔥 API Mock temporal
-      const data = await response.json();
-      set({ users: data.users });
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  },
+export const useUserStore = create<UserStore>((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
 }));

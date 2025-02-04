@@ -52,7 +52,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.push('/login');
+    router.push('/');
   };
 
   if (loading) return <p>Loading...</p>;

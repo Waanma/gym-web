@@ -1,0 +1,38 @@
+{
+    "gyms": [
+      {
+        "gym_id": "gym_123",
+        "name": "Gym XYZ",
+        "location": "New York",
+        "owner_id": "user_456",
+        "manifestos": [
+          {
+            "manifest_id": "manifest_001",
+            "name": "Full Body Routine",
+            "trainer_id": "trainer_789",
+            "date": "2025-01-23",
+            "status": "active",
+            "exercises": [
+              {
+                "exercise_id": "exercise_001",
+                "name": "Squats",
+                "sets": 4,
+                "reps": 12,
+                "rest_time": "60s",
+                "status": "completed"
+              },
+              {
+                "exercise_id": "exercise_002",
+                "name": "Bench Press",
+                "sets": 3,
+                "reps": 10,
+                "rest_time": "90s",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+  

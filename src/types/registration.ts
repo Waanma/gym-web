@@ -1,6 +1,11 @@
 export type RegisterFormData = {
-  gym_name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
+  role: 'client' | 'trainer' | 'admin'; // Role de usuario
+  gym_name: string; // Nombre del gimnasio
+  email: string; // Correo electrónico
+  password: string; // Contraseña
+  confirmPassword: string; // Confirmación de la contraseña
+  gym_id?: string; // ID del gimnasio (solo si el usuario es un trainer)
+  name?: string; // Nombre completo del usuario (required for all)
+  phone_number?: string; // Número de teléfono del usuario
+  address?: string; // Dirección del usuario
 };

@@ -1,6 +1,9 @@
-export interface User {
+export type User = {
   id: string;
   name: string;
   email: string;
-  role: string; // 'client' | 'trainer' | 'admin'
-}
+  phone_number: string;
+  address: string;
+  role: 'client' | 'trainer' | 'admin';
+  gymId?: string;
+};

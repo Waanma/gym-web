@@ -1,4 +1,3 @@
-// OwnerDetailsPage.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,7 +16,7 @@ export default function OwnerDetailsPage() {
     phone_number: '',
     address: '',
     subscription_plan: 'Basic',
-    subscription_start_date: new Date().toISOString(),
+    subscription_start_date: '', // Inicializamos con una cadena vacía
     preferred_payment_method: '',
   });
 
@@ -40,7 +39,7 @@ export default function OwnerDetailsPage() {
               address: data.user_data?.address || '',
               subscription_plan: data.subscription_plan || 'Basic',
               subscription_start_date:
-                data.subscription_start_date || new Date().toISOString(),
+                formatDate(data.subscription_start_date) || '', // Formateamos la fecha
               preferred_payment_method: data.preferred_payment_method || '',
             });
           } else {
@@ -54,6 +53,15 @@ export default function OwnerDetailsPage() {
       fetchOwnerDetails();
     }
   }, [uid]);
+
+  const formatDate = (date: string) => {
+    // Si la fecha no está vacía, la formateamos como yyyy-MM-dd
+    if (date) {
+      const formattedDate = new Date(date).toISOString().split('T')[0];
+      return formattedDate;
+    }
+    return '';
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -133,6 +141,8 @@ export default function OwnerDetailsPage() {
           <option value="Advanced">Advanced Plan</option>
           <option value="Premium">Premium Plan</option>
         </select>
+
+        {/* Campo de fecha formateado correctamente */}
         <input
           type="date"
           name="subscription_start_date"

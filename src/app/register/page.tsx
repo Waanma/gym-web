@@ -2,118 +2,81 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, db } from '@/config/firebaseConfig';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore'; // Importa Firestore
-import { fetchSignInMethodsForEmail } from 'firebase/auth'; // Importa para verificar el email
+import { useAuthStore, RegistrationData } from '@/store/authStore';
 import Loader from '@/components/Loader';
-import { RegisterFormData } from '@/types/registration';
 
-export default function RegisterPage({ toggle }: { toggle: () => void }) {
+interface RegisterPageProps {
+  toggle: () => void;
+}
+
+export default function RegisterPage({ toggle }: RegisterPageProps) {
   const router = useRouter();
-  const [step, setStep] = useState(1); // Paso de flujo (1: Email, 2: Contraseña, 3: Formulario del gimnasio)
-  const [formData, setFormData] = useState<RegisterFormData>({
-    gym_name: '',
+  const loading = useAuthStore((state) => state.loading);
+  const error = useAuthStore((state) => state.error);
+  const registerUser = useAuthStore((state) => state.registerUser);
+  const verifyEmail = useAuthStore((state) => state.verifyEmail);
+  const [step, setStep] = useState<number>(1);
+
+  const [formData, setFormData] = useState<RegistrationData>({
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'client',
+    gym_name: '',
+    gym_address: '',
+    gym_id: '',
+    name: '',
+    phone_number: '',
+    address: '',
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ): void => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const validateEmailFormat = (email: string) => {
+  const validateEmailFormat = (email: string): boolean => {
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     return emailRegex.test(email);
   };
 
-  const handleEmailValidation = async () => {
-    setLoading(true);
-    setError('');
-
+  // Paso 1: Validar formato y verificar si el email está disponible
+  const handleEmailValidation = async (): Promise<void> => {
     if (!validateEmailFormat(formData.email)) {
-      setError('Invalid email format.');
-      setLoading(false);
+      alert('Invalid email format.');
       return;
     }
-
     try {
-      // Verificar si el email ya está registrado usando fetchSignInMethodsForEmail
-      const methods = await fetchSignInMethodsForEmail(auth, formData.email);
-
-      if (methods.length > 0) {
-        setError('The email is already registered.');
-      } else {
-        // Si el email no está registrado, avanzamos al paso 2 para ingresar la contraseña
-        setStep(2);
-      }
-    } catch (err) {
-      console.error('Firebase error: ', err);
-      setError('An error occurred. Please try again.');
-    }
-
-    setLoading(false);
-  };
-
-  const handlePasswordSubmit = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    setStep(3); // Avanzamos al siguiente paso después de validar la contraseña
-  };
-
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Crear el usuario con el email y la contraseña
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-      const user = userCredential.user;
-
-      if (!user) {
-        setError('User creation failed');
-        setLoading(false);
+      const available = await verifyEmail(formData.email);
+      console.log('Email available:', available);
+      if (!available) {
+        alert('The email is already registered.');
         return;
       }
-
-      // Guardar datos en firestore
-      await setDoc(doc(db, 'gyms', user.uid), {
-        created_at: new Date().toISOString(),
-        email: formData.email,
-        gym_name: formData.gym_name,
-        gym_id: user.uid,
-        user_data: {
-          address: '',
-          name: '',
-          phone_number: '',
-        },
-      });
-
-      router.push(`/owner-details/${user.uid}`);
+      setStep(2);
     } catch (err) {
       if (err instanceof Error) {
-        setError(`Error: ${err.message}`);
-      } else {
-        setError('An unexpected error occurred.');
+        alert(err.message);
       }
     }
+  };
 
-    setLoading(false);
+  // Paso 2: Validar contraseñas
+  const handlePasswordSubmit = (): void => {
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+    setStep(3);
+  };
+
+  // Paso 3: Registro final
+  const handleSubmit = async (): Promise<void> => {
+    const gymId = await registerUser(formData);
+    if (gymId) {
+      router.push(`/dashboard/${gymId}`);
+    }
   };
 
   return (
@@ -122,7 +85,7 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleEmailValidation(); // Valida email
+            handleEmailValidation();
           }}
           className="flex flex-col gap-4"
         >
@@ -139,7 +102,7 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
           ) : (
             <button
               type="submit"
-              className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+              className="bg-blue-500 text-white p-2 rounded"
             >
               Next
             </button>
@@ -152,7 +115,7 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handlePasswordSubmit(); // Valida contraseña
+            handlePasswordSubmit();
           }}
           className="flex flex-col gap-4"
         >
@@ -177,11 +140,12 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
           ) : (
             <button
               type="submit"
-              className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+              className="bg-blue-500 text-white p-2 rounded"
             >
               Next
             </button>
           )}
+          {error && <p className="text-red-500">{error}</p>}
         </form>
       )}
 
@@ -189,24 +153,80 @@ export default function RegisterPage({ toggle }: { toggle: () => void }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleSubmit(); // Envia los datos a Firebase para crear el usuario
+            handleSubmit();
           }}
           className="flex flex-col gap-4"
         >
           <input
             type="text"
-            name="gym_name"
-            placeholder="Gym Name"
+            name="name"
+            placeholder="Full Name"
             onChange={handleChange}
             required
             className="border p-2 rounded bg-gray-800 text-white"
           />
+          <input
+            type="text"
+            name="phone_number"
+            placeholder="Phone Number"
+            onChange={handleChange}
+            required
+            className="border p-2 rounded bg-gray-800 text-white"
+          />
+          <input
+            type="text"
+            name="address"
+            placeholder="Your Personal Address"
+            onChange={handleChange}
+            required
+            className="border p-2 rounded bg-gray-800 text-white"
+          />
+          <select
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            className="border p-2 rounded bg-gray-800 text-white"
+          >
+            <option value="client">Client</option>
+            <option value="trainer">Trainer</option>
+            <option value="admin">Admin</option>
+          </select>
+          {formData.role === 'admin' && (
+            <>
+              <input
+                type="text"
+                name="gym_name"
+                placeholder="Gym Name"
+                onChange={handleChange}
+                required
+                className="border p-2 rounded bg-gray-800 text-white"
+              />
+              <input
+                type="text"
+                name="gym_address"
+                placeholder="Gym Address"
+                onChange={handleChange}
+                required
+                className="border p-2 rounded bg-gray-800 text-white"
+              />
+            </>
+          )}
+          {formData.role !== 'admin' && (
+            <input
+              type="text"
+              name="gym_id"
+              placeholder="Existing Gym ID"
+              onChange={handleChange}
+              required
+              className="border p-2 rounded bg-gray-800 text-white"
+            />
+          )}
           {loading ? (
             <Loader />
           ) : (
             <button
               type="submit"
-              className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+              className="bg-blue-500 text-white p-2 rounded"
             >
               Register
             </button>

@@ -27,6 +27,15 @@ export default function LoginPage({ toggle }: { toggle: () => void }) {
         formData.password
       );
       const user = userCredential.user;
+      if (!user) {
+        setError('Login failed.');
+        setLoading(false);
+        return;
+      }
+
+      const token = await user.getIdToken();
+      localStorage.setItem('firebaseToken', token); 
+      console.log('✅ Login exitoso, token guardado:', token);
 
       router.push(`/dashboard/${user.uid}`);
     } catch (err) {

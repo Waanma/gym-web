@@ -17,12 +17,9 @@ export interface Manifest {
 }
 
 export interface Gym {
-  id: string;
   gym_id: string;
   name: string;
-  email: string;
-  password: string;
   location: string;
   owner_id: string;
-  manifests: Manifest[];
+  subscription_plan?: string;
 }

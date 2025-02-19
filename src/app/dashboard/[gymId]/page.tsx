@@ -2,71 +2,100 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '@/config/firebaseConfig';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import DashboardHeader from '@/components/DashboardHeader';
+import DashboardSidebar from '@/components/DashboardSidebar';
+import ClientsList from '@/components/ClientList';
+import DashboardLoader from '@/components/DashboardLoader';
+import { useGymStore } from '@/store/gymStore';
+import { useUserStore } from '@/store/userStore';
+import { AxiosError } from 'axios';
 
 export default function Dashboard() {
-  const { gymId } = useParams();
   const router = useRouter();
-  const [gym, setGym] = useState<{ name: string; email: string } | null>(null);
+  const { gymId } = useParams(); // Se obtiene el gymId desde la URL
+
+  // Usamos el gymStore para gestionar la información del gimnasio
+  const gym = useGymStore((state) => state.gym);
+  const fetchGymById = useGymStore((state) => state.fetchGymById);
+
+  // Cargamos usuarios y datos del usuario actual desde el userStore
+  const { fetchUsers, fetchCurrentUser } = useUserStore();
+
   const [loading, setLoading] = useState(true);
 
+  // Cargar usuarios y usuario actual
   useEffect(() => {
-    if (!gymId || typeof gymId !== 'string') {
-      router.push('/login'); // 🔥 Evita que gymId sea undefined
-      return;
-    }
+    fetchUsers();
+    fetchCurrentUser();
+  }, [fetchUsers, fetchCurrentUser]);
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user || user.uid !== gymId) {
+  // Cargar datos del gimnasio usando el store
+  useEffect(() => {
+    const loadGym = async () => {
+      if (!gymId || typeof gymId !== 'string') {
+        console.error('❌ gymId inválido:', gymId);
         router.push('/login');
+        return;
       }
-    });
-
-    return () => unsubscribe();
-  }, [gymId, router]);
-
-  useEffect(() => {
-    if (!gymId || typeof gymId !== 'string') return; // 🔥 Evita que getDoc falle
-
-    const fetchGymData = async () => {
+      console.log('✅ gymId recibido:', gymId);
       try {
-        const gymRef = doc(db, 'gyms', gymId); // 🔥 Ahora `gymId` siempre será string
-        const gymSnap = await getDoc(gymRef);
-
-        if (gymSnap.exists()) {
-          setGym(gymSnap.data() as { name: string; email: string });
+        await fetchGymById(gymId);
+      } catch (error: unknown) {
+        if (error instanceof AxiosError) {
+          console.error(
+            `❌ API Error (${error.response?.status}):`,
+            error.response?.data
+          );
+          if (error.response?.status === 404) {
+            router.push('/not-found');
+          } else if (error.response?.status === 403) {
+            router.push('/unauthorized');
+          } else {
+            router.push('/login');
+          }
         } else {
-          router.push('/login'); // 🔥 Si no existe, redirigir
+          console.error('❌ Error desconocido:', error);
+          router.push('/login');
         }
-      } catch (error) {
-        console.error('Error fetching gym data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGymData();
-  }, [gymId, router]);
+    loadGym();
+  }, [gymId, router, fetchGymById]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/');
-  };
-
-  if (loading) return <p>Loading...</p>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <DashboardLoader />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-3xl font-bold">Welcome, {gym?.name}!</h1>
-      <p className="text-gray-500">{gym?.email}</p>
-      <button
-        onClick={handleLogout}
-        className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-      >
-        Logout
-      </button>
+    <div className="flex h-screen">
+      <DashboardSidebar />
+      <div className="flex-1 p-6 bg-gray-50">
+        <DashboardHeader />
+        <div className="mt-6">
+          <h1 className="text-4xl font-semibold text-gray-800 mb-2">
+            {gym?.name || 'Dashboard'}
+          </h1>
+          <p className="text-xl text-gray-600">
+            Location: {gym?.location || 'N/A'}
+          </p>
+          <p className="text-xl text-gray-600">
+            Owner ID: {gym?.owner_id || 'N/A'}
+          </p>
+          <div className="mt-8">
+            <h2 className="text-3xl font-semibold text-gray-700 mb-4">
+              User List
+            </h2>
+            <ClientsList />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Client } from '@/types/client';
 
 interface ClientState {
@@ -6,8 +7,13 @@ interface ClientState {
   addClient: (newClient: Client) => void;
 }
 
-export const useClientStore = create<ClientState>((set) => ({
-  clients: [],
-  addClient: (newClient) =>
-    set((state) => ({ clients: [...state.clients, newClient] })),
-}));
+export const useClientStore = create<ClientState>()(
+  persist(
+    (set) => ({
+      clients: [],
+      addClient: (newClient) =>
+        set((state) => ({ clients: [...state.clients, newClient] })),
+    }),
+    { name: 'client-storage' }
+  )
+);

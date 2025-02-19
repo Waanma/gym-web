@@ -11,15 +11,16 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'client', // Por defecto el rol es 'client'
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData); // Aquí pasamos los datos correctos al paso siguiente
+    onSubmit(formData);
   };
 
   return (
@@ -56,6 +57,16 @@ export default function RegisterForm({ onSubmit }: RegisterFormProps) {
         required
         className="border p-2 rounded bg-gray-800 text-white"
       />
+      <select
+        name="role"
+        value={formData.role}
+        onChange={handleChange}
+        className="border p-2 rounded bg-gray-800 text-white"
+      >
+        <option value="client">Client</option>
+        <option value="trainer">Trainer</option>
+        <option value="admin">Admin</option>
+      </select>
       <button
         type="submit"
         className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"

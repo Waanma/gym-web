@@ -1,27 +1,63 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useGymStore } from '@/store/gymStore';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import api from '@/services/axiosConfig';
 import Loader from '@/components/Loader';
+
+interface Manifest {
+  manifest_id: string;
+  name: string;
+  date: string;
+  status: string;
+}
+
+interface Gym {
+  gym_id: string;
+  name: string;
+  location: string;
+  manifests: Manifest[];
+}
 
 export default function GymDetailsPage() {
   const { gymId } = useParams(); // 🔥 Obtiene el gymId de la URL
-  const { gyms, fetchGyms } = useGymStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const [gym, setGym] = useState<Gym | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (gyms.length === 0) {
-      fetchGyms().then(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
+    if (!gymId || typeof gymId !== 'string') {
+      router.push('/dashboard'); // 🔄 Redirige si no hay gymId válido
+      return;
     }
-  }, [fetchGyms, gyms]);
 
-  const gym = gyms.find((g) => g.gym_id === gymId);
+    const fetchGymData = async () => {
+      try {
+        const token = localStorage.getItem('firebaseToken');
+        if (!token) {
+          console.error('🚫 No token found');
+          router.push('/login');
+          return;
+        }
 
-  if (isLoading) return <Loader />;
-  if (!gym) return <p>Gym not found</p>;
+        const response = await api.get<Gym>(`/gyms/${gymId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setGym(response.data);
+      } catch (error) {
+        console.error('❌ Error fetching gym data:', error);
+        router.push('/dashboard'); // 🔄 Redirige si hay un error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGymData();
+  }, [gymId, router]);
+
+  if (loading) return <Loader />;
+  if (!gym) return <p>❌ Gym not found</p>;
 
   return (
     <div className="max-w-3xl mx-auto mt-10">

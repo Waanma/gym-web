@@ -20,7 +20,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     if (!gym_id) {
-      router.push('/login');
+      router.push('/register');
       return;
     }
 

@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 interface Gym {
   gym_name: string;
   email: string;
-  location: string;
+  gym_address: string;
   subscription_plan: string;
 }
 
@@ -31,7 +31,7 @@ export default function Dashboard() {
           setGym({
             gym_name: gymData.gym_name ?? 'Unknown Gym',
             email: gymData.email ?? 'No Email',
-            location: gymData.location ?? 'No Location',
+            gym_address: gymData.gym_address ?? 'No Location',
             subscription_plan: gymData.subscription_plan ?? 'No Plan',
           });
         } else {

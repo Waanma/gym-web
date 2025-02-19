@@ -19,7 +19,7 @@ export interface Manifest {
 export interface Gym {
   gym_id: string;
   name: string;
-  location: string;
+  gym_address: string;
   owner_id: string;
   subscription_plan?: string;
 }

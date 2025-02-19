@@ -120,7 +120,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         const gymPayload = {
           gym_id: assignedGymId,
           gym_name: gym_name as string,
-          location: gym_address as string,
+          gym_address: gym_address as string,
           subscription_plan: 'Basic',
           owner_id: user.uid,
         };

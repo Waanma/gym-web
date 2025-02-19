@@ -83,7 +83,7 @@ export default function Dashboard() {
             {gym?.name || 'Dashboard'}
           </h1>
           <p className="text-xl text-gray-600">
-            Location: {gym?.location || 'N/A'}
+            Location: {gym?.gym_address || 'N/A'}
           </p>
           <p className="text-xl text-gray-600">
             Owner ID: {gym?.owner_id || 'N/A'}

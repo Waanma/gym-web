@@ -15,7 +15,7 @@ interface Manifest {
 interface Gym {
   gym_id: string;
   name: string;
-  location: string;
+  gym_address: string;
   manifests: Manifest[];
 }
 
@@ -62,7 +62,7 @@ export default function GymDetailsPage() {
   return (
     <div className="max-w-3xl mx-auto mt-10">
       <h1 className="text-3xl font-bold">{gym.name}</h1>
-      <p className="text-gray-500">{gym.location}</p>
+      <p className="text-gray-500">{gym.gym_address}</p>
 
       <h2 className="text-2xl font-semibold mt-6">Manifests</h2>
       <ul>

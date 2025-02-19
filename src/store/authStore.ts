@@ -4,33 +4,21 @@ import { create } from 'zustand';
 import { auth } from '@/config/firebaseConfig';
 import {
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import api from '@/services/axiosConfig';
-import { v4 as uuidv4 } from 'uuid';
-
-export interface RegistrationData {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: 'client' | 'trainer' | 'admin';
-  gym_name?: string; // Para admin
-  gym_address?: string; // Dirección del gym (solo para admin)
-  gym_id?: string; // Para trainer/client
-  name: string;
-  phone_number: string;
-  address: string;
-}
+import type { RegisterFormData } from '@/types/registration';
 
 interface AuthStoreState {
   loading: boolean;
   error: string | null;
   setLoading: (loading: boolean) => void;
   setError: (message: string | null) => void;
-  // Verifica si el email está disponible (true = disponible, false = ya registrado)
+  // Función que verifica si el email está disponible (true = disponible)
   verifyEmail: (email: string) => Promise<boolean>;
-  // Registra al usuario (crea en Firebase y en la API) y devuelve el gym_id asignado o null en caso de error.
-  registerUser: (formData: RegistrationData) => Promise<string | null>;
+  // Función que registra al usuario y retorna el gym_id asignado o null en caso de error.
+  registerUser: (formData: RegisterFormData) => Promise<string | null>;
 }
 
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
@@ -39,30 +27,21 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   setLoading: (loading) => set({ loading }),
   setError: (message) => set({ error: message }),
 
-  // Función de verificación de email: crea un usuario con "dummyPassword" y, si se crea, lo elimina
   verifyEmail: async (email: string): Promise<boolean> => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        'dummyPassword'
-      );
-      await userCredential.user.delete();
-      return true;
+      // Utilizamos fetchSignInMethodsForEmail para saber si el email ya está en uso
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      // Si hay métodos, significa que ya está registrado
+      return methods.length === 0;
     } catch (err: unknown) {
-      if (
-        err instanceof FirebaseError &&
-        err.code === 'auth/email-already-in-use'
-      ) {
-        return false;
-      } else if (err instanceof Error) {
+      if (err instanceof FirebaseError) {
         throw new Error(err.message);
       }
       throw new Error('Unknown error during email verification.');
     }
   },
 
-  registerUser: async (formData: RegistrationData): Promise<string | null> => {
+  registerUser: async (formData: RegisterFormData): Promise<string | null> => {
     const {
       email,
       password,
@@ -112,14 +91,16 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
       // Obtener token para llamadas a la API
       const token = await user.getIdToken();
+
       let assignedGymId: string | undefined = gym_id;
 
       if (role === 'admin') {
-        // Para admin, generar un nuevo gym con un ID único
-        assignedGymId = uuidv4();
+        // Para admin, usamos el UID del usuario como gym_id
+        assignedGymId = user.uid;
         const gymPayload = {
           gym_id: assignedGymId,
           gym_name: gym_name as string,
+          // Guardamos la dirección en "location"
           location: gym_address as string,
           subscription_plan: 'Basic',
           owner_id: user.uid,
@@ -140,7 +121,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           setLoading(false);
           return null;
         }
-        // Verificar que el gym exista en la API
+        // Validar que el gimnasio existe en la API
         await api.get(`/gyms/${assignedGymId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });

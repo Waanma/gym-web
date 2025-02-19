@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore, RegistrationData } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
+import { RegisterFormData } from '@/types/registration';
 import Loader from '@/components/Loader';
 
 interface RegisterPageProps {
@@ -17,7 +18,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
   const verifyEmail = useAuthStore((state) => state.verifyEmail);
   const [step, setStep] = useState<number>(1);
 
-  const [formData, setFormData] = useState<RegistrationData>({
+  const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
     password: '',
     confirmPassword: '',
@@ -62,7 +63,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
     }
   };
 
-  // Paso 2: Validar contraseñas
+  // Paso 2: Validar que las contraseñas coincidan
   const handlePasswordSubmit = (): void => {
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match.');
@@ -81,6 +82,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
 
   return (
     <div>
+      {/* PASO 1: Email */}
       {step === 1 && (
         <form
           onSubmit={(e) => {
@@ -111,6 +113,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
         </form>
       )}
 
+      {/* PASO 2: Contraseñas */}
       {step === 2 && (
         <form
           onSubmit={(e) => {
@@ -149,6 +152,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
         </form>
       )}
 
+      {/* PASO 3: Datos adicionales y registro final */}
       {step === 3 && (
         <form
           onSubmit={(e) => {

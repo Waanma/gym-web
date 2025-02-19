@@ -207,7 +207,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
               />
               <input
                 type="text"
-                name="gym_address"
+                name="gym_address" // Mantener solo gym_address
                 placeholder="Gym Address"
                 onChange={handleChange}
                 required

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import DashboardHeader from '@/components/DashboardHeader';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import ClientsList from '@/components/ClientList';
@@ -12,32 +12,37 @@ import { AxiosError } from 'axios';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { gymId } = useParams(); // Se obtiene el gymId desde la URL
-
-  // Usamos el gymStore para gestionar la información del gimnasio
+  const { currentUser, fetchCurrentUser, fetchUsers } = useUserStore();
   const gym = useGymStore((state) => state.gym);
   const fetchGymById = useGymStore((state) => state.fetchGymById);
 
-  // Cargamos usuarios y datos del usuario actual desde el userStore
-  const { fetchUsers, fetchCurrentUser } = useUserStore();
+  // Estados de carga separados:
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
+  const [loadingUser, setLoadingUser] = useState(true);
 
-  const [loading, setLoading] = useState(true);
-
-  // Cargar usuarios y usuario actual
+  // Cargar el usuario actual y usuarios generales
   useEffect(() => {
-    fetchUsers();
-    fetchCurrentUser();
-  }, [fetchUsers, fetchCurrentUser]);
+    const initUser = async () => {
+      await fetchCurrentUser();
+      await fetchUsers();
+      setLoadingUser(false);
+    };
+    initUser();
+  }, [fetchCurrentUser, fetchUsers]);
 
-  // Cargar datos del gimnasio usando el store
+  // Usar el gymId del currentUser
+  const gymId = currentUser?.gym_id || '';
+
+  // Cargar datos del gimnasio; solo proceder si ya se cargó el usuario
   useEffect(() => {
     const loadGym = async () => {
-      if (!gymId || typeof gymId !== 'string') {
-        console.error('❌ gymId inválido:', gymId);
-        router.push('/login');
+      if (loadingUser) return; // Esperamos a que se cargue el usuario
+      if (!gymId) {
+        console.error('❌ gymId no disponible en currentUser');
+        router.push('/');
         return;
       }
-      console.log('✅ gymId recibido:', gymId);
+      console.log('✅ gymId obtenido desde currentUser:', gymId);
       try {
         await fetchGymById(gymId);
       } catch (error: unknown) {
@@ -51,23 +56,23 @@ export default function Dashboard() {
           } else if (error.response?.status === 403) {
             router.push('/unauthorized');
           } else {
-            router.push('/login');
+            router.push('/');
           }
         } else {
           console.error('❌ Error desconocido:', error);
-          router.push('/login');
+          router.push('/');
         }
       } finally {
-        setLoading(false);
+        setLoadingDashboard(false);
       }
     };
 
     loadGym();
-  }, [gymId, router, fetchGymById]);
+  }, [gymId, loadingUser, router, fetchGymById]);
 
-  if (loading) {
+  if (loadingDashboard || loadingUser) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-screen">
         <DashboardLoader />
       </div>
     );
@@ -92,7 +97,7 @@ export default function Dashboard() {
             <h2 className="text-3xl font-semibold text-gray-700 mb-4">
               User List
             </h2>
-            <ClientsList />
+            <ClientsList gymId={gymId} />
           </div>
         </div>
       </div>

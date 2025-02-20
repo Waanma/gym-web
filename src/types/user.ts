@@ -5,5 +5,5 @@ export type User = {
   phone_number: string;
   address: string;
   role: 'client' | 'trainer' | 'admin';
-  gymId?: string;
+  gym_id?: string;
 };

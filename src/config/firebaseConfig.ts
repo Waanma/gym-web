@@ -1,5 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+  onAuthStateChanged,
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -15,7 +20,16 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-console.log("👤 Usuario actual:", auth.currentUser);
+// Establecer la persistencia para que la sesión se mantenga
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('Persistencia establecida en browserLocalPersistence');
+  })
+  .catch((error) => {
+    console.error('Error estableciendo persistencia:', error);
+  });
+
+console.log('👤 Usuario actual:', auth.currentUser);
 
 export const getFirebaseToken = async (): Promise<string | null> => {
   return new Promise((resolve) => {

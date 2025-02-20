@@ -36,7 +36,7 @@ export default function GymDetailsPage() {
         const token = localStorage.getItem('firebaseToken');
         if (!token) {
           console.error('🚫 No token found');
-          router.push('/login');
+          router.push('/');
           return;
         }
 

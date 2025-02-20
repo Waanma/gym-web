@@ -73,7 +73,15 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
   };
 
   // Paso 3: Registro final
-  const handleSubmit = async (): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      formData.role !== 'admin' &&
+      (!formData.gym_id || !formData.gym_id.trim())
+    ) {
+      alert('Please enter an existing Gym ID.');
+      return;
+    }
     const gymId = await registerUser(formData);
     if (gymId) {
       router.push(`/dashboard/${gymId}`);
@@ -157,7 +165,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleSubmit();
+            handleSubmit(e);
           }}
           className="flex flex-col gap-4"
         >

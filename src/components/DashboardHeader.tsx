@@ -44,7 +44,7 @@ export default function DashboardHeader() {
             phone_number: data?.phone_number || 'No phone number',
             address: data?.address || 'No address',
             role: data?.role || 'client',
-            gymId: data?.gym || '',
+            gym_id: data?.gym || '',
           });
         } else {
           console.warn('⚠️ Gym document not found for user:', user.uid);

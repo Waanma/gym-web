@@ -15,6 +15,7 @@ interface UserStore {
   fetchCurrentUser: () => Promise<void>;
   fetchUsersByGym: (gymId: string) => Promise<void>;
   fetchTrainersByGym: (gymId: string) => Promise<void>;
+  updateCurrentUser: (updatedData: Partial<User>) => Promise<void>;
 }
 
 // Helper: espera a que Firebase determine el usuario, con timeout
@@ -136,6 +137,41 @@ export const useUserStore = create<UserStore, [['zustand/persist', UserStore]]>(
           console.error('❌ Error fetching current user:', error);
         }
       },
+
+      updateCurrentUser: async (updatedData: Partial<User>) => {
+        try {
+          let firebaseUser = auth.currentUser;
+          if (!firebaseUser) {
+            console.warn(
+              '🚫 No authenticated user found, waiting for Firebase auth state...'
+            );
+            firebaseUser = await waitForAuthUser().catch((err) => {
+              console.error('❌ Error waiting for auth state:', err);
+              return null;
+            });
+          }
+          if (!firebaseUser) {
+            console.error('🚫 No authenticated user found after waiting.');
+            return;
+          }
+          const token = await firebaseUser.getIdToken();
+          if (!token) {
+            console.error('🚫 Failed to retrieve token');
+            return;
+          }
+          const response = await api.put<{ message: string; user: User }>(
+            `/users/${firebaseUser.uid}`,
+            updatedData,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const updatedUser = response.data.user || response.data;
+          set({ currentUser: updatedUser });
+          console.log('✅ User updated successfully:', updatedUser);
+        } catch (error) {
+          handleApiError(error);
+        }
+      },
+
       fetchUsersByGym: async (gymId: string) => {
         try {
           let firebaseUser = auth.currentUser;

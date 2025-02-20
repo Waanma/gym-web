@@ -107,7 +107,9 @@ export default function DashboardHeader() {
             <ul>
               <li>
                 <button
-                  onClick={() => router.push('/profile')}
+                  onClick={() =>
+                    router.push(`/profile/${currentUser?.user_id}`)
+                  }
                   className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
                 >
                   Profile

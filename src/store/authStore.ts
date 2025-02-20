@@ -15,9 +15,7 @@ interface AuthStoreState {
   error: string | null;
   setLoading: (loading: boolean) => void;
   setError: (message: string | null) => void;
-  // Función que verifica si el email está disponible (true = disponible)
   verifyEmail: (email: string) => Promise<boolean>;
-  // Función que registra al usuario y retorna el gym_id asignado o null en caso de error.
   registerUser: (formData: RegisterFormData) => Promise<string | null>;
 }
 
@@ -29,9 +27,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
   verifyEmail: async (email: string): Promise<boolean> => {
     try {
-      // Utilizamos fetchSignInMethodsForEmail para saber si el email ya está en uso
       const methods = await fetchSignInMethodsForEmail(auth, email);
-      // Si hay métodos, significa que ya está registrado
       return methods.length === 0;
     } catch (err: unknown) {
       if (err instanceof FirebaseError) {
@@ -58,17 +54,32 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     setLoading(true);
     setError(null);
 
-    // Validaciones básicas
-    if (!name || !phone_number || !address) {
-      setError('All fields are required.');
+    // Validaciones básicas: nombre, email y rol siempre son requeridos.
+    if (!name || !email || !role) {
+      setError('Name, email, and role are required.');
       setLoading(false);
       return null;
     }
+
+    // Para trainer y admin se exige que se ingresen teléfono y dirección.
+    if (
+      (role === 'trainer' || role === 'admin') &&
+      (!phone_number || !address)
+    ) {
+      setError(
+        'Phone number and address are required for trainers and admins.'
+      );
+      setLoading(false);
+      return null;
+    }
+
+    // Para admin se requiere gym_name y gym_address.
     if (role === 'admin' && (!gym_name || !gym_address)) {
       setError('Gym name and gym address are required for admin users.');
       setLoading(false);
       return null;
     }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       setLoading(false);
@@ -76,7 +87,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     }
 
     try {
-      // Crear el usuario real en Firebase
+      // Crear el usuario en Firebase
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -88,23 +99,20 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         setLoading(false);
         return null;
       }
-
-      // Obtener token para llamadas a la API
       const token = await user.getIdToken();
 
-      let assignedGymId: string | undefined = gym_id;
+      let assignedGymId: string | null = (gym_id && gym_id.trim()) || null;
 
       if (role === 'admin') {
-        // Para admin, usamos el UID del usuario como gym_id
+        // Para admin, asignamos el UID como gym_id automáticamente (ignorando lo que se haya ingresado)
         assignedGymId = user.uid;
         const gymPayload = {
           gym_id: assignedGymId,
-          gym_name: gym_name as string,
-          gym_address: gym_address as string,
+          gym_name,
+          gym_address,
           subscription_plan: 'Basic',
           owner_id: user.uid,
         };
-
         const gymResp = await api.post('/gyms', gymPayload, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -113,28 +121,34 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           setLoading(false);
           return null;
         }
-      } else {
-        // Para trainer o client, se requiere un gym_id existente
+      } else if (role === 'trainer') {
+        // Para trainer, se exige que se ingrese un gym_id no vacío.
+        assignedGymId = assignedGymId; // ya lo tenemos con trim()
         if (!assignedGymId) {
-          setError('Gym ID is required for trainer/client.');
+          setError('Gym ID is required for trainers.');
           setLoading(false);
           return null;
         }
-        // Validar que el gimnasio existe en la API
+        // Verificar que el gimnasio existe en la API.
         await api.get(`/gyms/${assignedGymId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+      } else if (role === 'client') {
+        // Para client, si no se ingresa gym_id, lo dejamos como null.
+        if (!assignedGymId) {
+          assignedGymId = null;
+        }
       }
 
-      // Crear el usuario en la API
       const userPayload = {
         user_id: user.uid,
         name,
         email,
-        phone_number,
-        address,
+        phone_number:
+          phone_number && phone_number.trim() ? phone_number.trim() : null,
+        address: address && address.trim() ? address.trim() : null,
         role,
-        gym_id: assignedGymId as string,
+        gym_id: assignedGymId,
       };
 
       const userResp = await api.post('/users', userPayload, {
@@ -146,7 +160,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         return null;
       }
       setLoading(false);
-      return assignedGymId as string;
+      return assignedGymId;
     } catch (err: unknown) {
       if (err instanceof FirebaseError) {
         setError(err.message);

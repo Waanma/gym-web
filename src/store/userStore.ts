@@ -112,7 +112,7 @@ export const useUserStore = create<UserStore, [['zustand/persist', UserStore]]>(
             if (error instanceof AxiosError && error.response?.status === 404) {
               console.warn('🚫 User not found in API. Creating new user...');
               const newUser: User = {
-                id: firebaseUser.uid,
+                user_id: firebaseUser.uid,
                 name: firebaseUser.email || 'Guest',
                 email: firebaseUser.email || '',
                 phone_number: '', // Ajusta según tu lógica

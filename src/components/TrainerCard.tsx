@@ -8,7 +8,7 @@ export default function TrainerCard({ trainer }: { trainer: User }) {
       <p className="text-gray-500">{trainer.email}</p>
       <p className="text-sm text-gray-400">Role: {trainer.role}</p>
       <Link
-        href={`/dashboard/trainers/${trainer.id}`}
+        href={`/dashboard/trainers/${trainer.user_id}`}
         className="text-blue-500 hover:underline mt-2 block"
       >
         Edit Trainer

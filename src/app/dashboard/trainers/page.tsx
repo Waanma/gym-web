@@ -49,8 +49,8 @@ export default function TrainersPage() {
         <p className="text-gray-500">No trainers found.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTrainers.map((trainer, index) => (
-            <TrainerCard key={trainer.id || index} trainer={trainer} />
+          {filteredTrainers.map((trainer) => (
+            <TrainerCard key={trainer.user_id} trainer={trainer} />
           ))}
         </div>
       )}

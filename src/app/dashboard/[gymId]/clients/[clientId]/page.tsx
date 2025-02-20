@@ -6,7 +6,7 @@ import { useClientStore } from '@/store/clientStore';
 export default function ClientProfile() {
   const { clientId } = useParams();
   const { clients } = useClientStore();
-  const client = clients.find((c) => c.id === clientId);
+  const client = clients.find((c) => c.user_id === clientId);
 
   if (!client) return <p>Client not found</p>;
 

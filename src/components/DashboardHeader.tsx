@@ -38,7 +38,7 @@ export default function DashboardHeader() {
 
           // ✅ Almacenar usuario en Zustand Store
           setCurrentUser({
-            id: user.uid,
+            user_id: user.uid,
             name: data?.user_data?.name || user.email || 'Guest',
             email: user.email || 'No email',
             phone_number: data?.phone_number || 'No phone number',

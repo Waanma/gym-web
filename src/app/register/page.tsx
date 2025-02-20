@@ -12,17 +12,14 @@ interface RegisterPageProps {
 
 export default function RegisterPage({ toggle }: RegisterPageProps) {
   const router = useRouter();
-  const loading = useAuthStore((state) => state.loading);
-  const error = useAuthStore((state) => state.error);
-  const registerUser = useAuthStore((state) => state.registerUser);
-  const verifyEmail = useAuthStore((state) => state.verifyEmail);
+  const { loading, error, registerUser, verifyEmail } = useAuthStore();
   const [step, setStep] = useState<number>(1);
 
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'client',
+    role: 'client', // Valor por defecto: client
     gym_name: '',
     gym_address: '',
     gym_id: '',
@@ -42,7 +39,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
     return emailRegex.test(email);
   };
 
-  // Paso 1: Validar formato y verificar si el email está disponible
+  // Paso 1: Validar email
   const handleEmailValidation = async (): Promise<void> => {
     if (!validateEmailFormat(formData.email)) {
       alert('Invalid email format.');
@@ -63,7 +60,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
     }
   };
 
-  // Paso 2: Validar que las contraseñas coincidan
+  // Paso 2: Validar contraseñas
   const handlePasswordSubmit = (): void => {
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match.');
@@ -75,14 +72,31 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
   // Paso 3: Registro final
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Para trainer: gym_id debe estar ingresado (no vacío)
+    if (
+      formData.role === 'trainer' &&
+      (!formData.gym_id || !formData.gym_id.trim())
+    ) {
+      alert('Gym ID is required for trainers.');
+      return;
+    }
+
+    // Para admin: ignoramos lo ingresado en gym_id (se asignará automáticamente)
+    // Para client: se permite que quede vacío (se completará desde el dashboard)
     const effectiveGymId =
-      formData.role !== 'admin' && (!formData.gym_id || !formData.gym_id.trim())
-        ? 'default-gym-id'
-        : formData.gym_id;
+      formData.role === 'admin'
+        ? '' // Se dejará vacío; en el authStore se asignará el UID automáticamente
+        : formData.role === 'client'
+        ? formData.gym_id || ''
+        : formData.gym_id; // Para trainer, se usa lo ingresado
 
     const gymId = await registerUser({ ...formData, gym_id: effectiveGymId });
-    if (gymId) {
+    if (gymId !== null) {
       router.push(`/dashboard/${gymId}`);
+    } else {
+      // Si por alguna razón no se asignó un gym (por ejemplo, para clientes sin asociación)
+      router.push('/dashboard/no-gym');
     }
   };
 
@@ -160,13 +174,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
 
       {/* PASO 3: Datos adicionales y registro final */}
       {step === 3 && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit(e);
-          }}
-          className="flex flex-col gap-4"
-        >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="text"
             name="name"
@@ -180,7 +188,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
             name="phone_number"
             placeholder="Phone Number"
             onChange={handleChange}
-            required
+            required={formData.role !== 'client'}
             className="border p-2 rounded bg-gray-800 text-white"
           />
           <input
@@ -188,9 +196,10 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
             name="address"
             placeholder="Your Personal Address"
             onChange={handleChange}
-            required
+            required={formData.role !== 'client'}
             className="border p-2 rounded bg-gray-800 text-white"
           />
+
           <select
             name="role"
             value={formData.role}
@@ -201,6 +210,8 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
             <option value="trainer">Trainer</option>
             <option value="admin">Admin</option>
           </select>
+
+          {/* Para admin, mostramos campos para el gimnasio pero no para gym_id */}
           {formData.role === 'admin' && (
             <>
               <input
@@ -213,7 +224,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
               />
               <input
                 type="text"
-                name="gym_address" // Mantener solo gym_address
+                name="gym_address"
                 placeholder="Gym Address"
                 onChange={handleChange}
                 required
@@ -221,7 +232,9 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
               />
             </>
           )}
-          {formData.role !== 'admin' && (
+
+          {/* Para trainer, se requiere gym_id */}
+          {formData.role === 'trainer' && (
             <input
               type="text"
               name="gym_id"
@@ -231,16 +244,25 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
               className="border p-2 rounded bg-gray-800 text-white"
             />
           )}
-          {loading ? (
-            <Loader />
-          ) : (
-            <button
-              type="submit"
-              className="bg-blue-500 text-white p-2 rounded"
-            >
-              Register
-            </button>
+
+          {/* Para client, gym_id es opcional */}
+          {formData.role === 'client' && (
+            <input
+              type="text"
+              name="gym_id"
+              placeholder="Existing Gym ID (optional)"
+              onChange={handleChange}
+              className="border p-2 rounded bg-gray-800 text-white"
+            />
           )}
+
+          <button
+            type="submit"
+            className="bg-blue-500 text-white p-2 rounded"
+            disabled={loading}
+          >
+            Register
+          </button>
           {error && <p className="text-red-500">{error}</p>}
         </form>
       )}
@@ -250,6 +272,7 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
         <button
           type="button"
           onClick={toggle}
+          disabled={loading}
           className="text-blue-500 hover:underline"
         >
           Login

@@ -14,16 +14,24 @@ export default function ClientList({ gymId }: ClientListProps) {
 
   useEffect(() => {
     if (gymId) {
-      fetchUsersByGym(gymId); // Llama a la función pasando el gymId
+      console.log('Llamando a fetchUsersByGym con gymId:', gymId);
+      fetchUsersByGym(gymId);
+    } else {
+      console.error('gymId es vacío o undefined');
     }
   }, [gymId, fetchUsersByGym]);
 
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(search.toLowerCase())
+  // Filtrar los usuarios: solo se muestran aquellos que tengan el gym_id igual a gymId y rol "client"
+  const filteredUsers = users.filter(
+    (user) =>
+      user.gym_id === gymId &&
+      user.role === 'client' &&
+      user.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="p-4">
+      {/* Barra de búsqueda */}
       <input
         type="text"
         placeholder="Search users..."
@@ -37,6 +45,7 @@ export default function ClientList({ gymId }: ClientListProps) {
       >
         Add New User
       </button>
+      {/* Si no hay usuarios filtrados */}
       {filteredUsers.length === 0 ? (
         <div className="text-center">
           <p className="text-gray-500">No users found.</p>

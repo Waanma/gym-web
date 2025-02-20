@@ -8,11 +8,13 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 interface UserStore {
   users: User[];
+  trainers: User[];
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   fetchUsers: () => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
   fetchUsersByGym: (gymId: string) => Promise<void>;
+  fetchTrainersByGym: (gymId: string) => Promise<void>;
 }
 
 // Helper: espera a que Firebase determine el usuario, con timeout
@@ -36,6 +38,7 @@ export const useUserStore = create<UserStore, [['zustand/persist', UserStore]]>(
   persist(
     (set) => ({
       users: [],
+      trainers: [],
       currentUser: null,
 
       setCurrentUser: (user) => set({ currentUser: user }),
@@ -154,11 +157,34 @@ export const useUserStore = create<UserStore, [['zustand/persist', UserStore]]>(
             console.error('🚫 Failed to retrieve token');
             return;
           }
-          const response = await api.get<User[]>(`/gyms/${gymId}/clients`, {
+          const endpoint = `/gyms/${gymId}/clients`;
+          console.log('Llamando a:', endpoint);
+          const response = await api.get<User[]>(endpoint, {
             headers: { Authorization: `Bearer ${token}` },
           });
           set({ users: response.data });
           console.log('✅ Users by gym fetched successfully:', response.data);
+        } catch (error) {
+          handleApiError(error);
+        }
+      },
+
+      fetchTrainersByGym: async (gym_id: string) => {
+        try {
+          let firebaseUser = auth.currentUser;
+          if (!firebaseUser) {
+            firebaseUser = await waitForAuthUser().catch(() => null);
+          }
+          if (!firebaseUser) return;
+          const token = await firebaseUser.getIdToken();
+          const response = await api.get<User[]>(`/gyms/${gym_id}/trainers`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          set({ trainers: response.data }); // Agrega una propiedad "trainers" en el store
+          console.log(
+            '✅ Trainers by gym fetched successfully:',
+            response.data
+          );
         } catch (error) {
           handleApiError(error);
         }

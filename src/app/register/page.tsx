@@ -75,14 +75,12 @@ export default function RegisterPage({ toggle }: RegisterPageProps) {
   // Paso 3: Registro final
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      formData.role !== 'admin' &&
-      (!formData.gym_id || !formData.gym_id.trim())
-    ) {
-      alert('Please enter an existing Gym ID.');
-      return;
-    }
-    const gymId = await registerUser(formData);
+    const effectiveGymId =
+      formData.role !== 'admin' && (!formData.gym_id || !formData.gym_id.trim())
+        ? 'default-gym-id'
+        : formData.gym_id;
+
+    const gymId = await registerUser({ ...formData, gym_id: effectiveGymId });
     if (gymId) {
       router.push(`/dashboard/${gymId}`);
     }

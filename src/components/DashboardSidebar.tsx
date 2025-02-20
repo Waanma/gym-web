@@ -7,12 +7,17 @@ export default function DashboardSidebar() {
       <nav>
         <ul>
           <li className="mb-4">
-            <Link href="#" className="hover:underline">
+            <Link href="/dashboard/users" className="hover:underline">
               🏋️ Users
             </Link>
           </li>
+          <li className="mb-4">
+            <Link href="/dashboard/trainers" className="hover:underline">
+              👨‍🏫 Trainers
+            </Link>
+          </li>
           <li>
-            <Link href="#" className="hover:underline">
+            <Link href="/dashboard/settings" className="hover:underline">
               ⚙️ Settings
             </Link>
           </li>

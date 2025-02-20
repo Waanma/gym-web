@@ -7,6 +7,7 @@ export default function ClientCard({ user }: { user: User }) {
     <div className="border p-4 rounded-md shadow-md hover:shadow-lg transition">
       <h2 className="text-lg font-bold text-black">{user.name}</h2>
       <p className="text-gray-500">{user.email}</p>
+      <p className="text-gray-500">{user.gym_id}</p>
 
       {/* Mostrar el rol si existe */}
       {user.role && <p className="text-sm text-gray-400">Role: {user.role}</p>}

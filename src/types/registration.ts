@@ -1,5 +1,5 @@
 export type RegisterFormData = {
-  role: 'client' | 'trainer' | 'admin'; // Role de usuario
+  role: string; // Role de usuario
   gym_name: string; // Nombre del gimnasio
   gym_address: string; // Dirección del gimnasio (solo si el usuario es un admin)
   email: string; // Correo electrónico

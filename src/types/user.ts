@@ -4,6 +4,6 @@ export type User = {
   email: string;
   phone_number: string;
   address: string;
-  role: 'client' | 'trainer' | 'admin';
+  role: string;
   gym_id?: string;
 };

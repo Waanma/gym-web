@@ -33,7 +33,7 @@ export default function Dashboard() {
     const loadGym = async () => {
       if (
         (currentUser?.role === 'admin' || currentUser?.role === 'trainer') &&
-        !gym_id.trim()
+        (!gym_id || !gym_id.trim())
       ) {
         console.error('❌ gym_id no disponible para admin/trainer');
         router.push('/profile');
@@ -101,7 +101,7 @@ export default function Dashboard() {
           ) : (
             <>
               <h2 className="text-2xl font-semibold mb-4">Your Routines</h2>
-              {/* Aquí puedes incluir el componente de rutinas para clientes */}
+              {/* Aquí se pueden incluir los detalles de las rutinas del cliente */}
               <p className="text-lg">Your routine details will appear here.</p>
             </>
           )}
@@ -110,31 +110,68 @@ export default function Dashboard() {
     );
   }
 
-  // Vista para admin y trainer
-  return (
-    <div className="flex h-screen bg-gray-100">
-      {/* El layout idealmente se mueve a un layout compartido, pero aquí lo incluimos en este page */}
-      <div className="flex-1 p-8">
-        <div className="mb-8 border-b pb-4">
-          <h1 className="text-4xl font-bold text-gray-800">
-            {gym?.name || 'Dashboard'}
-          </h1>
-          <p className="mt-2 text-lg text-gray-600">
-            Location: {gym?.gym_address || 'N/A'}
-          </p>
-          <p className="mt-1 text-lg text-gray-600">
-            Owner ID: {gym?.owner_id || 'N/A'}
-          </p>
-        </div>
-        <div>
-          <h2 className="text-3xl font-semibold text-gray-800 mb-4">
-            User List
-          </h2>
-          <div className="bg-white rounded-lg shadow p-4">
-            <ClientsList gymId={gym_id} />
+  // Vista para administradores
+  if (currentUser?.role === 'admin') {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        <div className="flex-1 p-8">
+          <div className="mb-8 border-b pb-4">
+            <h1 className="text-4xl font-bold text-gray-800">
+              {gym?.name || 'Dashboard'}
+            </h1>
+            <p className="mt-2 text-lg text-gray-600">
+              Location: {gym?.gym_address || 'N/A'}
+            </p>
+            <p className="mt-1 text-lg text-gray-600">
+              Owner ID: {gym?.owner_id || 'N/A'}
+            </p>
+          </div>
+          <div>
+            <h2 className="text-3xl font-semibold text-gray-800 mb-4">
+              User List
+            </h2>
+            <div className="bg-white rounded-lg shadow p-4">
+              <ClientsList gymId={gym_id} />
+            </div>
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Vista para entrenadores
+  if (currentUser?.role === 'trainer') {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        <div className="flex-1 p-8">
+          <div className="mb-8 border-b pb-4">
+            <h1 className="text-4xl font-bold text-gray-800">
+              {gym?.name || 'Dashboard'}
+            </h1>
+            <p className="mt-2 text-lg text-gray-600">
+              Location: {gym?.gym_address || 'N/A'}
+            </p>
+            <p className="mt-1 text-lg text-gray-600">
+              Trainer: {currentUser.name}
+            </p>
+          </div>
+          <div>
+            <h2 className="text-3xl font-semibold text-gray-800 mb-4">
+              User List
+            </h2>
+            <div className="bg-white rounded-lg shadow p-4">
+              <ClientsList gymId={gym_id} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: rol no reconocido
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-100">
+      <p className="text-xl text-red-500">Error: User role not recognized.</p>
     </div>
   );
 }

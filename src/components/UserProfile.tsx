@@ -42,7 +42,7 @@ export default function UserProfile({ user, onClose }: UserProfileProps) {
       </button>
 
       {/* Encabezado con foto e info principal */}
-      <div className="p-6 border-b flex items-center">
+      <div className="p-6 border-b flex items-center bg-green-100">
         <img
           src={(user as any).photoURL || DEFAULT_AVATAR}
           alt="User Avatar"

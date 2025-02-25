@@ -2,7 +2,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useRoutineStore } from '@/store/routineStore';
+import { useUserStore } from '@/store/userStore';
 import { Routine } from '@/types/routine';
 import ExerciseModal from '@/components/ExerciseModal';
 
@@ -11,36 +13,66 @@ interface RoutineManagerProps {
 }
 
 export default function RoutineManager({ onClose }: RoutineManagerProps) {
-  // Obtenemos la rutina seleccionada (si estamos editando una rutina existente)
-  const { selectedRoutine, updateRoutine } = useRoutineStore();
+  const { selectedRoutine, updateRoutine, createRoutine } = useRoutineStore();
+  const currentUser = useUserStore((state) => state.currentUser);
+  const currentUserId = currentUser?.user_id || '';
+
   const [routineName, setRoutineName] = useState(selectedRoutine?.name || '');
   const [routineDescription, setRoutineDescription] = useState(
     selectedRoutine?.description || ''
   );
   const [showExerciseModal, setShowExerciseModal] = useState(false);
 
-  const handleSave = () => {
-    if (selectedRoutine) {
-      const updatedRoutine: Routine = {
-        ...selectedRoutine,
-        name: routineName,
-        description: routineDescription,
-      };
-      updateRoutine(updatedRoutine);
+  const handleSave = async () => {
+    try {
+      if (selectedRoutine) {
+        // Actualizar rutina existente
+        await updateRoutine(selectedRoutine.routine_id, {
+          name: routineName,
+          description: routineDescription,
+        });
+      } else {
+        // Crear rutina nueva: se asigna routine_id como cadena vacía (backend lo genera)
+        const newRoutine: Routine = {
+          routine_id: '',
+          user_id: currentUserId,
+          name: routineName,
+          description: routineDescription,
+          exercises: [],
+          weight: 0,
+          sets: 0,
+          reps: 0,
+          created_by: currentUserId,
+          updated_by: currentUserId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        await createRoutine(newRoutine);
+      }
+      onClose();
+    } catch (error) {
+      console.error('Error saving routine:', error);
+      // Aquí podrías mostrar una notificación o alerta
     }
-    onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded shadow-lg w-full max-w-lg">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 text-gray-800"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white p-6 rounded shadow-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Routine Manager</h2>
+          <h2 className="text-2xl font-bold">Routine Manager</h2>
           <button
             onClick={onClose}
-            className="text-gray-600 hover:text-gray-800"
+            className="text-gray-600 hover:text-gray-800 text-2xl"
           >
-            X
+            &times;
           </button>
         </div>
         <div className="mb-4">
@@ -62,7 +94,7 @@ export default function RoutineManager({ onClose }: RoutineManagerProps) {
             className="w-full p-2 border rounded"
           ></textarea>
         </div>
-        {/* Lista de ejercicios */}
+        {/* Sección para ejercicios */}
         <div className="mb-4">
           <h3 className="font-semibold mb-2">Exercises</h3>
           {selectedRoutine?.exercises &&
@@ -98,13 +130,21 @@ export default function RoutineManager({ onClose }: RoutineManagerProps) {
             Save
           </button>
         </div>
+        {showExerciseModal && (
+          <ExerciseModal
+            onClose={() => setShowExerciseModal(false)}
+            routineId={selectedRoutine?.routine_id || ''}
+            onAddExercise={(exercise) => {
+              // Añade el ejercicio a la rutina usando la función del store
+              useRoutineStore
+                .getState()
+                .addExercise(exercise, selectedRoutine?.routine_id || '');
+            }}
+          />
+        )}
       </div>
-      {showExerciseModal && (
-        <ExerciseModal
-          onClose={() => setShowExerciseModal(false)}
-          routineId={selectedRoutine?.routine_id || ''}
-        />
-      )}
     </div>
   );
+
+  return ReactDOM.createPortal(modalContent, document.body);
 }

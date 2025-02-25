@@ -1,9 +1,8 @@
-// components/UserRoutines.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Routine, Exercise } from '@/types/routine';
-import { useRouter } from 'next/navigation';
+import RoutineManager from './RoutineManager';
 
 interface UserRoutinesProps {
   userId: string;
@@ -17,23 +16,27 @@ export default function UserRoutines({
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('All');
   const [expandedRoutines, setExpandedRoutines] = useState<string[]>([]);
-  const router = useRouter();
+  const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
 
-  // Obtiene las rutinas del backend para el usuario
-  useEffect(() => {
-    async function fetchRoutines() {
-      try {
-        const res = await fetch(`/api/routines?userId=${userId}`);
-        const data = await res.json();
-        setRoutines(data);
-      } catch (error) {
-        console.error('Error fetching routines:', error);
+  // Función para consultar las rutinas desde la API
+  const fetchRoutines = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/routines?userId=${userId}`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch routines. Status: ${res.status}`);
       }
+      const data = await res.json();
+      setRoutines(data);
+    } catch (error) {
+      console.error('Error fetching routines:', error);
     }
-    fetchRoutines();
   }, [userId]);
 
-  // Filtra las rutinas usando el mes derivado de createdAt
+  useEffect(() => {
+    fetchRoutines();
+  }, [fetchRoutines]);
+
+  // Filtra las rutinas según el mes
   const filteredRoutines = routines.filter((routine) => {
     if (selectedMonth === 'All') return true;
     const month = new Date(routine.createdAt).toLocaleString('default', {
@@ -50,16 +53,19 @@ export default function UserRoutines({
     }
   };
 
+  // Al guardar una rutina, refrescamos la lista
+  const handleRoutineSave = async () => {
+    setIsRoutineModalOpen(false);
+    await fetchRoutines();
+  };
+
   const handleAddNewRoutine = () => {
-    // Redirige al componente RoutineManager, que en este caso se mostrará como modal.
-    // La implementación exacta dependerá de tu flujo de navegación; por ejemplo,
-    // podrías usar un estado global para mostrar el modal o redirigir a una ruta dedicada.
-    router.push('/routine-manager'); // Ejemplo de redirección
+    setIsRoutineModalOpen(true);
   };
 
   return (
     <div>
-      {/* Month selector */}
+      {/* Selector de mes */}
       <div className="mb-4">
         <label htmlFor="month-select" className="mr-2 font-semibold">
           Month:
@@ -86,7 +92,6 @@ export default function UserRoutines({
         </select>
       </div>
 
-      {/* If no routines found, show message and button */}
       {filteredRoutines.length === 0 ? (
         <div className="text-center text-gray-500">
           <p>No routines found.</p>
@@ -99,7 +104,6 @@ export default function UserRoutines({
         </div>
       ) : (
         <>
-          {/* List of routines */}
           <div className="space-y-4">
             {filteredRoutines.map((routine) => (
               <div key={routine.routine_id} className="border rounded p-4">
@@ -153,7 +157,6 @@ export default function UserRoutines({
               </div>
             ))}
           </div>
-          {/* Always show Add New Routine button */}
           <div className="mt-6 text-center">
             <button
               onClick={handleAddNewRoutine}
@@ -164,6 +167,7 @@ export default function UserRoutines({
           </div>
         </>
       )}
+      {isRoutineModalOpen && <RoutineManager onClose={handleRoutineSave} />}
     </div>
   );
 }

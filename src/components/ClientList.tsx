@@ -6,11 +6,32 @@ import { User } from '@/types/user';
 interface ClientListProps {
   gymId: string;
   onSelectUser: (user: User) => void;
+  isProfileOpen?: boolean;
 }
 
-export default function ClientList({ gymId, onSelectUser }: ClientListProps) {
+// Hook para obtener el ancho de la ventana
+function useWindowWidth() {
+  const [width, setWidth] = useState<number>(
+    typeof window !== 'undefined' ? window.innerWidth : 0
+  );
+
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return width;
+}
+
+export default function ClientList({
+  gymId,
+  onSelectUser,
+  isProfileOpen = false,
+}: ClientListProps) {
   const { users, fetchUsersByGym } = useUserStore();
   const [search, setSearch] = useState('');
+  const width = useWindowWidth();
 
   useEffect(() => {
     if (gymId) {
@@ -27,6 +48,13 @@ export default function ClientList({ gymId, onSelectUser }: ClientListProps) {
       user.role === 'client' &&
       user.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Si el perfil está abierto o el ancho es menor a 1250px, forzamos 1 columna.
+  // En caso contrario, usamos un grid autoajustable con un ancho mínimo de 300px para cada tarjeta.
+  const gridClasses =
+    isProfileOpen || width < 1250
+      ? 'grid grid-cols-1 gap-6'
+      : 'grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-6';
 
   return (
     <div className="p-6 bg-white">
@@ -50,7 +78,7 @@ export default function ClientList({ gymId, onSelectUser }: ClientListProps) {
           <p className="text-gray-500 text-lg">No users found.</p>
         </div>
       ) : (
-        <div className="max-h-96 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`${gridClasses} max-h-[400px] overflow-y-auto`}>
           {filteredUsers.map((user) => (
             <ClientCard
               key={user.user_id}

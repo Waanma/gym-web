@@ -2,19 +2,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRoutineStore } from '@/store/routineStore';
 import { Exercise } from '@/types/routine';
 
 interface ExerciseModalProps {
   onClose: () => void;
   routineId: string;
+  onAddExercise: (exercise: Exercise) => void;
 }
 
 export default function ExerciseModal({
   onClose,
-  routineId,
+  onAddExercise,
 }: ExerciseModalProps) {
-  const { addExercise } = useRoutineStore();
   const [exerciseName, setExerciseName] = useState('');
   const [exerciseWeight, setExerciseWeight] = useState<number>(0);
   const [exerciseReps, setExerciseReps] = useState<number>(0);
@@ -30,13 +29,20 @@ export default function ExerciseModal({
       sets: exerciseSets,
       // Agrega otras propiedades si es necesario
     };
-    addExercise(newExercise, routineId);
+    // Llama a la función pasada por props para agregar el ejercicio
+    onAddExercise(newExercise);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white p-6 rounded shadow-lg w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Add New Exercise</h2>
           <button

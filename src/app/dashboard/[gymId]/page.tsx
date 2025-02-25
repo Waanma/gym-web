@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ClientsList from '@/components/ClientList';
 import DashboardLoader from '@/components/DashboardLoader';
+import UserProfile from '@/components/UserProfile';
 import { useGymStore } from '@/store/gymStore';
 import { useUserStore } from '@/store/userStore';
 import { AxiosError } from 'axios';
+import { User } from '@/types/user';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function Dashboard() {
 
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Cargar datos del usuario y la lista de usuarios
   useEffect(() => {
@@ -101,7 +104,6 @@ export default function Dashboard() {
           ) : (
             <>
               <h2 className="text-2xl font-semibold mb-4">Your Routines</h2>
-              {/* Aquí se pueden incluir los detalles de las rutinas del cliente */}
               <p className="text-lg">Your routine details will appear here.</p>
             </>
           )}
@@ -110,11 +112,18 @@ export default function Dashboard() {
     );
   }
 
-  // Vista para administradores
-  if (currentUser?.role === 'admin') {
+  // Vista para administradores y entrenadores
+  // Vista para admin/trainer
+  if (currentUser?.role === 'admin' || currentUser?.role === 'trainer') {
     return (
-      <div className="flex h-screen bg-gray-100">
-        <div className="flex-1 p-8">
+      <div className="flex h-screen bg-gray-100 relative">
+        {/* Sección principal (lista de usuarios) */}
+        <div
+          className={`
+          transition-all duration-300 p-8 
+          ${selectedUser ? 'w-full md:w-1/2' : 'w-full'}
+        `}
+        >
           <div className="mb-8 border-b pb-4">
             <h1 className="text-4xl font-bold text-gray-800">
               {gym?.name || 'Dashboard'}
@@ -122,48 +131,58 @@ export default function Dashboard() {
             <p className="mt-2 text-lg text-gray-600">
               Location: {gym?.gym_address || 'N/A'}
             </p>
-            <p className="mt-1 text-lg text-gray-600">
-              Owner ID: {gym?.owner_id || 'N/A'}
-            </p>
+            {currentUser?.role === 'admin' ? (
+              <p className="mt-1 text-lg text-gray-600">
+                Owner ID: {gym?.owner_id || 'N/A'}
+              </p>
+            ) : (
+              <p className="mt-1 text-lg text-gray-600">
+                Trainer: {currentUser.name}
+              </p>
+            )}
           </div>
-          <div>
-            <h2 className="text-3xl font-semibold text-gray-800 mb-4">
-              User List
-            </h2>
-            <div className="bg-white rounded-lg shadow p-4">
-              <ClientsList gymId={gym_id} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  // Vista para entrenadores
-  if (currentUser?.role === 'trainer') {
-    return (
-      <div className="flex h-screen bg-gray-100">
-        <div className="flex-1 p-8">
-          <div className="mb-8 border-b pb-4">
-            <h1 className="text-4xl font-bold text-gray-800">
-              {gym?.name || 'Dashboard'}
-            </h1>
-            <p className="mt-2 text-lg text-gray-600">
-              Location: {gym?.gym_address || 'N/A'}
-            </p>
-            <p className="mt-1 text-lg text-gray-600">
-              Trainer: {currentUser.name}
-            </p>
-          </div>
           <div>
             <h2 className="text-3xl font-semibold text-gray-800 mb-4">
               User List
             </h2>
             <div className="bg-white rounded-lg shadow p-4">
-              <ClientsList gymId={gym_id} />
+              <ClientsList gymId={gym_id} onSelectUser={setSelectedUser} />
             </div>
           </div>
         </div>
+
+        {/* Panel de perfil (absoluto, desliza desde la derecha) */}
+        <div
+          className={`
+          hidden md:block
+          absolute top-0 right-0 bottom-0
+          w-full md:w-1/2
+          bg-white shadow-lg
+          transition-transform duration-300
+          ${selectedUser ? 'translate-x-0' : 'translate-x-full'}
+        `}
+        >
+          {/* Renderiza el perfil solo si hay un usuario seleccionado */}
+          {selectedUser && (
+            <UserProfile
+              user={selectedUser}
+              onClose={() => setSelectedUser(null)}
+            />
+          )}
+        </div>
+
+        {/* Modal para mobile */}
+        {selectedUser && (
+          <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 flex items-end">
+            <div className="w-full bg-white p-4 rounded-t-lg transition-transform duration-300 transform translate-y-0">
+              <UserProfile
+                user={selectedUser}
+                onClose={() => setSelectedUser(null)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -9,21 +9,26 @@ import {
 import { FirebaseError } from 'firebase/app';
 import api from '@/services/axiosConfig';
 import type { RegisterFormData } from '@/types/registration';
+import type { User } from '@/types/user';
 
 interface AuthStoreState {
   loading: boolean;
   error: string | null;
+  user: User | null;
   setLoading: (loading: boolean) => void;
   setError: (message: string | null) => void;
+  setUser: (user: User | null) => void;
   verifyEmail: (email: string) => Promise<boolean>;
   registerUser: (formData: RegisterFormData) => Promise<string | null>;
 }
 
-export const useAuthStore = create<AuthStoreState>((set, get) => ({
+export const useAuthStore = create<AuthStoreState>()((set, get) => ({
   loading: false,
   error: null,
-  setLoading: (loading) => set({ loading }),
-  setError: (message) => set({ error: message }),
+  user: null,
+  setLoading: (loading: boolean) => set({ loading }),
+  setError: (message: string | null) => set({ error: message }),
+  setUser: (user: User | null) => set({ user }),
 
   verifyEmail: async (email: string): Promise<boolean> => {
     try {
@@ -50,18 +55,24 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       phone_number,
       address,
     } = formData;
-    const { setLoading, setError } = get();
+    const { setLoading, setError, setUser } = get();
     setLoading(true);
     setError(null);
 
-    // Validaciones básicas: nombre, email y rol siempre son requeridos.
+    // Check that role is one of the allowed values
+    if (role !== 'client' && role !== 'trainer' && role !== 'admin') {
+      setError('Invalid role. Must be client, trainer, or admin.');
+      setLoading(false);
+      return null;
+    }
+
+    // Basic validations
     if (!name || !email || !role) {
       setError('Name, email, and role are required.');
       setLoading(false);
       return null;
     }
 
-    // Para trainer y admin se exige que se ingresen teléfono y dirección.
     if (
       (role === 'trainer' || role === 'admin') &&
       (!phone_number || !address)
@@ -73,7 +84,6 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       return null;
     }
 
-    // Para admin se requiere gym_name y gym_address.
     if (role === 'admin' && (!gym_name || !gym_address)) {
       setError('Gym name and gym address are required for admin users.');
       setLoading(false);
@@ -87,7 +97,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     }
 
     try {
-      // Crear el usuario en Firebase
+      // Debug log the role before registration
+      console.log('[registerUser] Role before Firebase creation:', role);
+
+      // Create user in Firebase
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -101,10 +114,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       }
       const token = await user.getIdToken();
 
+      // Prepare gym_id value
       let assignedGymId: string | null = (gym_id && gym_id.trim()) || null;
-
+      // For admin, override any provided gym_id with the Firebase UID.
       if (role === 'admin') {
-        // Para admin, asignamos el UID como gym_id automáticamente (ignorando lo que se haya ingresado)
         assignedGymId = user.uid;
         const gymPayload = {
           gym_id: assignedGymId,
@@ -122,34 +135,35 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           return null;
         }
       } else if (role === 'trainer') {
-        // Para trainer, se exige que se ingrese un gym_id no vacío.
-        assignedGymId = assignedGymId; // ya lo tenemos con trim()
         if (!assignedGymId) {
           setError('Gym ID is required for trainers.');
           setLoading(false);
           return null;
         }
-        // Verificar que el gimnasio existe en la API.
+        // Verify gym exists
         await api.get(`/gyms/${assignedGymId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else if (role === 'client') {
-        // Para client, si no se ingresa gym_id, lo dejamos como null.
+        // For client, if no gym_id provided, remain null
         if (!assignedGymId) {
           assignedGymId = null;
         }
       }
 
-      const userPayload = {
+      // Build the user payload using the role from formData (which is trusted)
+      const userPayload: User = {
         user_id: user.uid,
         name,
         email,
         phone_number:
           phone_number && phone_number.trim() ? phone_number.trim() : null,
         address: address && address.trim() ? address.trim() : null,
-        role,
+        role, // this is the role from the form
         gym_id: assignedGymId,
       };
+
+      console.log('[registerUser] Final user payload:', userPayload);
 
       const userResp = await api.post('/users', userPayload, {
         headers: { Authorization: `Bearer ${token}` },
@@ -159,6 +173,9 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         setLoading(false);
         return null;
       }
+
+      // Persist the registered user in the store
+      setUser(userPayload);
       setLoading(false);
       return assignedGymId;
     } catch (err: unknown) {

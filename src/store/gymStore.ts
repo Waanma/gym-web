@@ -7,6 +7,10 @@ interface GymState {
   gym: Gym | null;
   fetchGyms: () => Promise<void>;
   fetchGymById: (gymId: string) => Promise<void>;
+  updateGym: (
+    gymId: string,
+    data: Partial<Omit<Gym, 'gym_id' | 'owner_id'>>
+  ) => Promise<void>;
 }
 
 export const useGymStore = create<GymState>((set) => ({
@@ -28,6 +32,19 @@ export const useGymStore = create<GymState>((set) => ({
     } catch (error) {
       console.error('Error fetching gym by ID:', error);
       set({ gym: null });
+      throw error;
+    }
+  },
+  updateGym: async (
+    gymId: string,
+    data: Partial<Omit<Gym, 'gym_id' | 'owner_id'>>
+  ) => {
+    try {
+      const response = await api.put(`/gyms/${gymId}`, data);
+      // Actualizamos la información del gimnasio en el store
+      set({ gym: response.data });
+    } catch (error) {
+      console.error('Error updating gym:', error);
       throw error;
     }
   },

@@ -1,14 +1,14 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/userStore';
 import ClientCard from '@/components/ClientCard';
+import { User } from '@/types/user';
 
 interface ClientListProps {
   gymId: string;
+  onSelectUser: (user: User) => void;
 }
 
-export default function ClientList({ gymId }: ClientListProps) {
+export default function ClientList({ gymId, onSelectUser }: ClientListProps) {
   const { users, fetchUsersByGym } = useUserStore();
   const [search, setSearch] = useState('');
 
@@ -21,7 +21,6 @@ export default function ClientList({ gymId }: ClientListProps) {
     }
   }, [gymId, fetchUsersByGym]);
 
-  // Filtrar usuarios: solo aquellos con gym_id igual a gymId, rol "client" y que coincidan con la búsqueda
   const filteredUsers = users.filter(
     (user) =>
       user.gym_id === gymId &&
@@ -51,9 +50,13 @@ export default function ClientList({ gymId }: ClientListProps) {
           <p className="text-gray-500 text-lg">No users found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="max-h-96 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredUsers.map((user) => (
-            <ClientCard key={user.user_id} user={user} />
+            <ClientCard
+              key={user.user_id}
+              user={user}
+              onSelectUser={onSelectUser}
+            />
           ))}
         </div>
       )}

@@ -1,3 +1,4 @@
+// useAuthListener.tsx
 'use client';
 
 import { auth } from '@/config/firebaseConfig';
@@ -6,17 +7,20 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect } from 'react';
 
 export function useAuthListener() {
-  const resetUser = useUserStore((state) => state.setCurrentUser);
-  const fetchCurrentUser = useUserStore((state) => state.fetchCurrentUser);
+  const { setCurrentUser, fetchCurrentUser, currentUser } = useUserStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchCurrentUser();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // Si currentUser ya tiene datos (creados en registerUser), no sobrescribirlos.
+        if (!currentUser) {
+          // Llamamos a fetchCurrentUser para obtener los datos completos desde la API
+          fetchCurrentUser();
+        }
       } else {
-        resetUser(null);
+        setCurrentUser(null);
       }
     });
     return () => unsubscribe();
-  }, [fetchCurrentUser, resetUser]);
+  }, [setCurrentUser, fetchCurrentUser, currentUser]);
 }

@@ -46,7 +46,7 @@ export default function UserProfile({ user, onClose }: UserProfileProps) {
         <img
           src={(user as any).photoURL || DEFAULT_AVATAR}
           alt="User Avatar"
-          className="w-20 h-20 rounded-full object-cover"
+          className="w-20 h-20 rounded-full object-cover bg-black"
         />
         <div className="ml-6">
           <h2 className="text-2xl font-bold text-gray-800">{user.name}</h2>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/config/firebaseConfig';
 import { signOut } from 'firebase/auth';
@@ -9,14 +9,17 @@ import { db } from '@/config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import InfiniteLoader from './InfiniteLoader';
 
-export default function DashboardHeader() {
+interface DashboardHeaderProps {
+  toggleSidebar: () => void;
+}
+
+export default function DashboardHeader({
+  toggleSidebar,
+}: DashboardHeaderProps) {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
-
-  // ✅ Aseguramos que currentUser esté en el store
   const currentUser = useUserStore((state) => state.currentUser);
   const setCurrentUser = useUserStore((state) => state.setCurrentUser);
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,15 +31,11 @@ export default function DashboardHeader() {
           setLoading(false);
           return;
         }
-
-        // 🔥 Obtener datos del usuario desde Firestore
         const docRef = doc(db, 'gyms', user.uid);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data() || {};
-
-          // ✅ Almacenar usuario en Zustand Store
           setCurrentUser({
             user_id: user.uid,
             name: data?.user_data?.name || user.email || 'Guest',
@@ -73,6 +72,23 @@ export default function DashboardHeader() {
 
   return (
     <header className="flex justify-between items-center p-4 bg-gray-800 text-white">
+      {/* Botón hamburguesa: visible en pantallas pequeñas */}
+      <button onClick={toggleSidebar} className="lg:hidden mr-4">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+      </button>
       <h1 className="text-lg font-bold">Dashboard</h1>
 
       <div className="relative">

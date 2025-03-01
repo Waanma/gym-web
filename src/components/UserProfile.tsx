@@ -19,7 +19,7 @@ export default function UserProfile({ user, onClose }: UserProfileProps) {
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-white">
+    <div className="relative flex flex-col h-screen bg-white overflow-y-auto">
       {/* Botón de cerrar */}
       <button
         onClick={onClose}

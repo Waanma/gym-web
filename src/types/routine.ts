@@ -17,7 +17,7 @@ export interface Routine {
   updated_by?: string;
   createdAt: string;
   updatedAt: string;
-  exercises?: Exercise[]; // Asociación a ejercicios
+  exercises?: Exercise[];
 }
 
 export interface RoutineState {

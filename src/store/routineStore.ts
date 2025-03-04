@@ -45,16 +45,23 @@ export const useRoutineStore = create<RoutineState>((set) => ({
       }
       const newExercise = await res.json();
       set((state) => {
-        const updatedRoutines = state.routines.map((rt) =>
-          rt.routine_id === routineId
-            ? {
-                ...rt,
-                exercises: rt.exercises
-                  ? [newExercise, ...rt.exercises]
-                  : [newExercise],
-              }
-            : rt
-        );
+        const updatedRoutines = state.routines.map((rt) => {
+          if (rt.routine_id === routineId) {
+            // Si ya existe un ejercicio con el mismo id, no lo agregamos de nuevo
+            const alreadyExists = rt.exercises?.some(
+              (ex) => ex.id === newExercise.id
+            );
+            return {
+              ...rt,
+              exercises: alreadyExists
+                ? rt.exercises
+                : rt.exercises
+                ? [newExercise, ...rt.exercises]
+                : [newExercise],
+            };
+          }
+          return rt;
+        });
         const updatedSelectedRoutine =
           state.selectedRoutine &&
           state.selectedRoutine.routine_id === routineId

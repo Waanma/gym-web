@@ -8,13 +8,15 @@ import { useRoutineStore } from '@/store/routineStore';
 import { useUserStore } from '@/store/userStore';
 
 interface RoutineManagerProps {
-  routine: Routine | null; // Si es null, se crea una nueva rutina
+  routine: Routine | null;
   onClose: () => void;
+  clientId?: string;
 }
 
 export default function RoutineManager({
   routine,
   onClose,
+  clientId,
 }: RoutineManagerProps) {
   const {
     updateRoutine,
@@ -24,7 +26,7 @@ export default function RoutineManager({
     deleteRoutine,
   } = useRoutineStore();
   const currentUser = useUserStore((state) => state.currentUser);
-  const currentUserId = currentUser?.user_id || '';
+  const currentUserId = clientId || currentUser?.user_id || '';
 
   const initialStep = routine ? 2 : 1;
   const [step, setStep] = useState<number>(initialStep);
@@ -140,7 +142,6 @@ export default function RoutineManager({
         await updateRoutine(currentRoutine.routine_id, {
           name: routineName,
           description: routineDescription,
-          exercises: currentRoutine.exercises,
         });
       }
       onClose();
@@ -452,94 +453,95 @@ export default function RoutineManager({
               <h3 className="text-2xl font-semibold mb-4">
                 Exercises for Day {selectedDay}
               </h3>
-              <ul className="space-y-4">
-                {exercisesForDay.map((exercise, index) => (
-                  <li
-                    key={`${exercise.id}-${index}`}
-                    className="p-4 border rounded shadow-sm"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold">
-                        {exercise.name}
-                      </span>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={(e) => handleEditExercise(exercise, e)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteExercise(exercise, e)}
-                          className="text-red-400 hover:text-red-600"
-                          title="Delete Exercise"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+              {/* Contenedor con scroll vertical */}
+              <div className="max-h-96 overflow-y-auto">
+                <ul className="space-y-4">
+                  {exercisesForDay.map((exercise, index) => (
+                    <li
+                      key={`${exercise.id}-${index}`}
+                      className="px-3 py-2 bg-white rounded-md shadow-sm hover:shadow-md transition-shadow duration-200"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold text-gray-800">
+                          {exercise.name}
+                        </span>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={(e) => handleEditExercise(exercise, e)}
+                            className="text-blue-600 hover:text-blue-800"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a1 1 0 00-1 1v1h6V4a1 1 0 00-1-1m-4 0h4"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex justify-around">
-                      <div className="flex flex-col items-center">
-                        <div className="w-20 bg-blue-200 border border-blue-300 rounded-t-md text-center text-sm font-medium text-gray-500">
-                          Weight
-                        </div>
-                        <div className="w-20 h-10 flex items-center justify-center border border-blue-300 rounded-b-md">
-                          <span className="text-sm text-gray-700">
-                            {exercise.weight}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <div className="w-20 bg-blue-200 border border-blue-300 rounded-t-md text-center text-sm font-medium text-gray-500">
-                          Sets
-                        </div>
-                        <div className="w-20 h-10 flex items-center justify-center border border-blue-300 rounded-b-md">
-                          <span className="text-sm text-gray-700">
-                            {exercise.sets}
-                          </span>
+                            Edit
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteExercise(exercise, e)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Delete Exercise"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a1 1 0 00-1 1v1h6V4a1 1 0 00-1-1m-4 0h4"
+                              />
+                            </svg>
+                          </button>
                         </div>
                       </div>
-                      <div className="flex flex-col items-center">
-                        <div className="w-20 bg-blue-200 border border-blue-300 rounded-t-md text-center text-sm font-medium text-gray-500">
-                          Reps
-                        </div>
-                        <div className="w-20 h-10 flex items-center justify-center border border-blue-300 rounded-b-md">
-                          <span className="text-sm text-gray-700">
-                            {exercise.reps}
-                          </span>
-                        </div>
-                      </div>
-                      {exercise.time &&
-                        exercise.time !== '00:00' &&
-                        exercise.time !== '0:00' && (
-                          <div className="flex flex-col items-center">
-                            <div className="w-20 bg-blue-200 border border-blue-300 rounded-t-md text-center text-sm font-medium text-gray-500">
-                              Duration
-                            </div>
-                            <div className="w-20 h-10 flex items-center justify-center border border-blue-300 rounded-b-md">
-                              <span className="text-sm text-gray-700">
+                      <div className="flex justify-around mt-1">
+                        {exercise.weight > 0 && (
+                          <div className="w-16 bg-blue-50 p-1 rounded flex flex-col items-center">
+                            <span className="text-xs text-gray-600 font-semibold">
+                              Weight
+                            </span>
+                            <span className="mt-1 text-xs font-medium text-blue-600">
+                              {exercise.weight}
+                            </span>
+                          </div>
+                        )}
+                        {exercise.reps > 0 && (
+                          <div className="w-16 bg-blue-50 p-1 rounded flex flex-col items-center">
+                            <span className="text-xs text-gray-600 font-semibold">
+                              Reps
+                            </span>
+                            <span className="mt-1 text-xs font-medium text-blue-600">
+                              {exercise.reps}
+                            </span>
+                          </div>
+                        )}
+                        {exercise.sets > 0 && (
+                          <div className="w-16 bg-blue-50 p-1 rounded flex flex-col items-center">
+                            <span className="text-xs text-gray-600 font-semibold">
+                              Sets
+                            </span>
+                            <span className="mt-1 text-xs font-medium text-blue-600">
+                              {exercise.sets}
+                            </span>
+                          </div>
+                        )}
+                        {exercise.time &&
+                          exercise.time !== '00:00' &&
+                          exercise.time !== '0:00' && (
+                            <div className="w-16 bg-blue-50 p-1 rounded flex flex-col items-center">
+                              <span className="text-xs text-gray-600 font-semibold">
+                                Duration
+                              </span>
+                              <span className="mt-1 text-xs font-medium text-blue-600">
                                 {exercise.time}
                               </span>
                             </div>
-                          </div>
-                        )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                          )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
               <div className="flex justify-between mt-6">
                 <button
                   onClick={handleOpenAddExercise}
@@ -552,7 +554,7 @@ export default function RoutineManager({
                   <button
                     onClick={handleFinish}
                     disabled={loading}
-                    className="px-8 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50"
+                    className="px-8 py-3 bg-blue-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
                   >
                     Save Routine
                   </button>
@@ -573,6 +575,7 @@ export default function RoutineManager({
           exercise={exerciseToEdit || undefined}
           showDaySelector={showDaySelectorInModal}
           defaultDay={selectedDay}
+          existingDays={uniqueDays}
         />
       )}
       {showEditRoutineModal && <EditRoutineModal />}

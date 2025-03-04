@@ -10,9 +10,11 @@ export default function ProfilePage() {
   const { currentUser, updateCurrentUser, fetchCurrentUser } = useUserStore();
   const { gym, fetchGymById, updateGym } = useGymStore();
 
-  // Estado para el modo edición de usuario y de gimnasio
+  // Estados para modo edición
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [isEditingGym, setIsEditingGym] = useState(false);
+  // Nuevo estado para asociar Gym
+  const [isAssociatingGym, setIsAssociatingGym] = useState(false);
 
   // Estado para el formulario de usuario
   const [userFormData, setUserFormData] = useState({
@@ -75,7 +77,6 @@ export default function ProfilePage() {
         phone_number: userFormData.phone_number,
         address: userFormData.address,
       });
-      // Actualizamos la info del gimnasio si es necesario
       if (userFormData.gym_id) {
         await fetchGymById(userFormData.gym_id);
       }
@@ -84,6 +85,31 @@ export default function ProfilePage() {
     } catch (err: unknown) {
       console.error('Error updating profile:', err);
       setError('Error al actualizar el perfil.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para asociar Gym (para clientes)
+  const handleAssociateGym = async () => {
+    if (!userFormData.gym_id.trim()) {
+      setError('El Gym ID no puede estar vacío.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      await updateCurrentUser({ gym_id: userFormData.gym_id });
+      // Se actualiza la información del gym en el store
+      await fetchGymById(userFormData.gym_id);
+      setIsAssociatingGym(false);
+      setSuccessMsg(
+        `✅ Asociado con Gym: ${gym ? gym.name : userFormData.gym_id}`
+      );
+    } catch (err: unknown) {
+      console.error('Error associating gym:', err);
+      setError('Error al asociar el gimnasio.');
     } finally {
       setLoading(false);
     }
@@ -113,7 +139,7 @@ export default function ProfilePage() {
     }
   };
 
-  // Función para cancelar la edición (usuario o gym)
+  // Función para cancelar la edición
   const handleCancelEdit = () => {
     if (currentUser) {
       setUserFormData({
@@ -123,15 +149,10 @@ export default function ProfilePage() {
         address: currentUser.address || '',
       });
     }
-    if (gym) {
-      setGymFormData({
-        gym_name: gym.name,
-        gym_address: gym.gym_address,
-      });
-    }
     setError('');
     setIsEditingUser(false);
     setIsEditingGym(false);
+    setIsAssociatingGym(false);
   };
 
   return (
@@ -177,7 +198,6 @@ export default function ProfilePage() {
             </button>
           )}
         </div>
-
         <div className="mt-4 space-y-4">
           <div>
             <label className="block text-black font-medium">Nombre:</label>
@@ -186,10 +206,7 @@ export default function ProfilePage() {
                 type="text"
                 value={userFormData.name}
                 onChange={(e) =>
-                  setUserFormData((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
+                  setUserFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
                 className="border p-2 rounded w-full text-black"
               />
@@ -254,33 +271,47 @@ export default function ProfilePage() {
           <h2 className="text-2xl font-semibold mb-4 text-black">
             Asociar Gimnasio
           </h2>
-          {isEditingUser ? (
-            <>
-              <label className="block text-black font-medium">Gym ID:</label>
-              <input
-                type="text"
-                value={userFormData.gym_id}
-                onChange={(e) =>
-                  setUserFormData((prev) => ({
-                    ...prev,
-                    gym_id: e.target.value,
-                  }))
-                }
-                className="border p-2 rounded w-full mt-2 text-black"
-                placeholder="Ingrese Gym ID"
-              />
-            </>
-          ) : currentUser?.gym_id ? (
+          {currentUser?.gym_id ? (
             <p className="text-green-600">
-              ✅ Asociado con Gym ID: {currentUser.gym_id}
+              ✅ Asociado con Gym: {gym ? gym.name : currentUser.gym_id}
             </p>
           ) : (
-            <p className="text-black">No estás asociado a ningún gimnasio.</p>
+            <>
+              {isAssociatingGym ? (
+                <>
+                  <input
+                    type="text"
+                    value={userFormData.gym_id}
+                    onChange={(e) =>
+                      setUserFormData((prev) => ({
+                        ...prev,
+                        gym_id: e.target.value,
+                      }))
+                    }
+                    className="border p-2 rounded w-full mt-2 text-black"
+                    placeholder="Ingrese Gym ID"
+                  />
+                  <button
+                    onClick={handleAssociateGym}
+                    className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Asociar
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsAssociatingGym(true)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Asociar
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
 
-      {/* Sección para Admin: Información del Gimnasio y opción de editarla */}
+      {/* Sección para Admin: Información del Gimnasio */}
       {currentUser?.role === 'admin' && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-2xl font-semibold mb-4 text-black">

@@ -14,6 +14,7 @@ interface ExerciseModalProps {
   showDaySelector: boolean;
   defaultDay: number;
   existingExerciseNames?: string[];
+  existingDays?: number[];
 }
 
 interface Errors {
@@ -29,13 +30,24 @@ const predefinedExercises: { name: string }[] = [
   ...exercisesList,
 ];
 
-const dayOptions = [1, 2, 3, 4, 5, 6, 7];
+const dayOptions = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+  23, 24, 25, 26, 27, 28, 29, 30, 31,
+];
 
 // Helper: formatea segundos a "MM:SS"
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+function parseDuration(duration: string): number {
+  const parts = duration.split(':');
+  if (parts.length !== 2) return 0;
+  const minutes = parseInt(parts[0], 10);
+  const seconds = parseInt(parts[1], 10);
+  if (isNaN(minutes) || isNaN(seconds)) return 0;
+  return minutes * 60 + seconds;
 }
 
 export default function ExerciseModal({
@@ -46,6 +58,7 @@ export default function ExerciseModal({
   showDaySelector,
   defaultDay,
   existingExerciseNames = [],
+  existingDays = [],
 }: ExerciseModalProps) {
   const [selectedPredefined, setSelectedPredefined] =
     useState<string>('Custom');
@@ -55,8 +68,9 @@ export default function ExerciseModal({
   const [exerciseSets, setExerciseSets] = useState<number>(0);
   // Para duration, usamos segundos (por ejemplo, 30 para 0:30).
   const [exerciseTime, setExerciseTime] = useState<number>(
-    exercise && exercise.time ? Number(exercise.time) : 0
+    exercise && exercise.time ? parseDuration(exercise.time) : 0
   );
+
   // Usamos defaultDay directamente para la inicialización.
   const [exerciseDay, setExerciseDay] = useState<number>(
     exercise ? exercise.day : defaultDay
@@ -73,6 +87,12 @@ export default function ExerciseModal({
     sets: '',
     day: '',
   });
+
+  const availableDays = exercise
+    ? dayOptions.filter(
+        (day) => day === exerciseDay || !existingDays.includes(day)
+      )
+    : dayOptions.filter((day) => !existingDays.includes(day));
 
   // Manejo de cambios en Weight, Sets y Reps
   const handleChangeWeight = (value: string) => {
@@ -100,7 +120,7 @@ export default function ExerciseModal({
       setExerciseWeight(exercise.weight);
       setExerciseReps(exercise.reps);
       setExerciseSets(exercise.sets);
-      setExerciseTime(exercise.time ? Number(exercise.time) : 0);
+      setExerciseTime(exercise.time ? parseDuration(exercise.time) : 0);
       setExerciseDay(exercise.day);
       if (
         predefinedExercises.some(
@@ -179,37 +199,46 @@ export default function ExerciseModal({
       newErrors.name = 'Exercise name is required';
       valid = false;
     }
-    if (exerciseWeight <= 0) {
-      newErrors.weight = 'Weight must be greater than 0';
-      valid = false;
+
+    // Solo validar weight, sets y reps si no se ha definido un tiempo.
+    if (exerciseTime === 0) {
+      if (exerciseWeight <= 0) {
+        newErrors.weight = 'Weight must be greater than 0';
+        valid = false;
+      }
+      if (exerciseReps <= 0) {
+        newErrors.reps = 'Reps must be greater than 0';
+        valid = false;
+      }
+      if (exerciseSets <= 0) {
+        newErrors.sets = 'Sets must be greater than 0';
+        valid = false;
+      }
     }
-    if (exerciseReps <= 0) {
-      newErrors.reps = 'Reps must be greater than 0';
-      valid = false;
-    }
-    if (exerciseSets <= 0) {
-      newErrors.sets = 'Sets must be greater than 0';
-      valid = false;
-    }
+
     if (showDaySelector && (exerciseDay < 1 || exerciseDay > 7)) {
       newErrors.day = 'Please select a valid day (1-7)';
       valid = false;
     }
+
     setErrors(newErrors);
     return valid;
   };
 
   const handleSaveExercise = () => {
     if (!validate()) return;
+
     const newExercise: Exercise = {
       id: exercise ? exercise.id : Date.now().toString(),
       name: exerciseName.trim(),
+      day: showDaySelector ? exerciseDay : defaultDay,
+      time: formatDuration(exerciseTime),
       weight: exerciseWeight,
       reps: exerciseReps,
       sets: exerciseSets,
-      day: showDaySelector ? exerciseDay : defaultDay,
-      time: formatDuration(exerciseTime),
     };
+
+    console.log('Payload a enviar:', newExercise);
     onAddExercise(newExercise);
     onClose();
   };
@@ -236,26 +265,6 @@ export default function ExerciseModal({
         className="bg-white p-6 rounded shadow-lg w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        {showDaySelector && (
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Day</label>
-            <select
-              value={exerciseDay}
-              onChange={(e) => setExerciseDay(Number(e.target.value))}
-              className="w-full p-2 border rounded"
-            >
-              {dayOptions.map((day) => (
-                <option key={day} value={day}>
-                  {`Day ${day}`}
-                </option>
-              ))}
-            </select>
-            {errors.day && (
-              <p className="text-red-500 text-xs mt-1">{errors.day}</p>
-            )}
-          </div>
-        )}
-
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">
             {exercise ? 'Edit Exercise' : 'Add New Exercise'}
@@ -267,6 +276,26 @@ export default function ExerciseModal({
             X
           </button>
         </div>
+
+        {showDaySelector && (
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">Day</label>
+            <select
+              value={exerciseDay}
+              onChange={(e) => setExerciseDay(Number(e.target.value))}
+              className="w-full p-2 border rounded"
+            >
+              {availableDays.map((day) => (
+                <option key={day} value={day}>
+                  {`Day ${day}`}
+                </option>
+              ))}
+            </select>
+            {errors.day && (
+              <p className="text-red-500 text-xs mt-1">{errors.day}</p>
+            )}
+          </div>
+        )}
 
         {exercise && (
           <div className="mb-4">
@@ -396,64 +425,6 @@ export default function ExerciseModal({
                 <p className="text-red-500 text-xs mt-1">{errors.weight}</p>
               )}
             </div>
-            {/* Sets */}
-            <div className="w-1/4">
-              <div className="w-full bg-blue-200 border border-blue-300 rounded-t-md text-center text-sm font-medium text-gray-500">
-                Sets
-              </div>
-              <div className="relative w-full h-10 border border-blue-300 rounded-b-md">
-                <input
-                  type="text"
-                  className="w-full h-full text-center pr-6 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  value={exerciseSets === 0 ? '' : exerciseSets}
-                  onChange={(e) => handleChangeSets(e.target.value)}
-                  placeholder="0"
-                />
-                <div className="absolute right-0 top-0 h-full w-6 flex flex-col border-l border-blue-300 bg-gray-100 rounded-tr-md rounded-br-md">
-                  <div
-                    className="flex-1 flex items-center justify-center cursor-pointer hover:bg-gray-200"
-                    onClick={incrementSets}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3 w-3 text-gray-700"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 15l7-7 7 7"
-                      />
-                    </svg>
-                  </div>
-                  <div
-                    className="flex-1 flex items-center justify-center cursor-pointer hover:bg-gray-200"
-                    onClick={decrementSets}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3 w-3 text-gray-700"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              {errors.sets && (
-                <p className="text-red-500 text-xs mt-1">{errors.sets}</p>
-              )}
-            </div>
             {/* Reps */}
             <div className="w-1/4">
               <div className="w-full bg-blue-200 border border-blue-300 rounded-t-md text-center text-sm font-medium text-gray-500">
@@ -510,6 +481,64 @@ export default function ExerciseModal({
               </div>
               {errors.reps && (
                 <p className="text-red-500 text-xs mt-1">{errors.reps}</p>
+              )}
+            </div>
+            {/* Sets */}
+            <div className="w-1/4">
+              <div className="w-full bg-blue-200 border border-blue-300 rounded-t-md text-center text-sm font-medium text-gray-500">
+                Sets
+              </div>
+              <div className="relative w-full h-10 border border-blue-300 rounded-b-md">
+                <input
+                  type="text"
+                  className="w-full h-full text-center pr-6 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  value={exerciseSets === 0 ? '' : exerciseSets}
+                  onChange={(e) => handleChangeSets(e.target.value)}
+                  placeholder="0"
+                />
+                <div className="absolute right-0 top-0 h-full w-6 flex flex-col border-l border-blue-300 bg-gray-100 rounded-tr-md rounded-br-md">
+                  <div
+                    className="flex-1 flex items-center justify-center cursor-pointer hover:bg-gray-200"
+                    onClick={incrementSets}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3 text-gray-700"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 15l7-7 7 7"
+                      />
+                    </svg>
+                  </div>
+                  <div
+                    className="flex-1 flex items-center justify-center cursor-pointer hover:bg-gray-200"
+                    onClick={decrementSets}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3 text-gray-700"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              {errors.sets && (
+                <p className="text-red-500 text-xs mt-1">{errors.sets}</p>
               )}
             </div>
             {/* Duration */}
